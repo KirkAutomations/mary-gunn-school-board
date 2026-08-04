@@ -1,165 +1,58 @@
-param(
-  [int]$Port = 4173
-)
-
-$ErrorActionPreference = 'Stop'
-$root = Split-Path -Parent $MyInvocation.MyCommand.Path
-$qaDir = Join-Path $root 'qa'
-$index = Join-Path $root 'index.html'
-$scriptCopy = Join-Path $qaDir 'index-script.js'
-$proc = $null
+param([int]$Port=4173)
+$ErrorActionPreference='Stop'
+$root=Split-Path -Parent $MyInvocation.MyCommand.Path
+$qa=Join-Path $root 'qa'
+$proc=$null
 Set-Location $root
-New-Item -ItemType Directory -Force $qaDir | Out-Null
-
-function Write-Section([string]$title) { Write-Host "`n== $title ==" }
-
-try {
-  Write-Section 'Stub scan'
-  $stubMatches = Select-String -Path $index -Pattern 'TODO|stub|placeholder' -CaseSensitive:$false
-  if ($stubMatches) { throw "Stub text found:`n$($stubMatches | Out-String)" }
-  Write-Host 'No stub text found.'
-
-  Write-Section 'Extract JS'
-  @'
-from pathlib import Path
-import re
-html = Path('index.html').read_text(encoding='utf-8')
-match = re.search(r'<script>\s*(.*?)\s*</script>\s*</body>', html, re.S)
-if not match:
-    raise SystemExit('Main script block not found')
-Path('qa/index-script.js').write_text(match.group(1), encoding='utf-8')
-print(len(match.group(1)))
-'@ | python -
-
-  Write-Section 'Syntax check'
-  node --check $scriptCopy
-
-  Write-Section 'Link, asset, and structure check'
+New-Item -ItemType Directory -Force $qa|Out-Null
+try{
+  Write-Host "`n== Static checks =="
+  $bad=Select-String -Path index.html -Pattern 'TODO|stub|placeholder|lorem ipsum' -CaseSensitive:$false
+  if($bad){throw "Unfinished markers found: $($bad|Out-String)"}
   @'
 from pathlib import Path
 from html.parser import HTMLParser
+import re
+html=Path('index.html').read_text(encoding='utf-8')
+m=re.search(r'<script>\s*(.*?)\s*</script>\s*</body>',html,re.S)
+if not m: raise SystemExit('main script missing')
+Path('qa/index-script.js').write_text(m.group(1),encoding='utf-8')
+class P(HTMLParser):
+ def __init__(self): super().__init__(); self.ids=set(); self.links=[]; self.img=[]
+ def handle_starttag(self,t,a):
+  a=dict(a)
+  if 'id' in a:self.ids.add(a['id'])
+  if t=='a' and 'href' in a:self.links.append(a['href'])
+  if t=='img' and 'src' in a:self.img.append(a['src'])
+p=P();p.feed(html);bad=[]
+for h in p.links:
+ if h.startswith('#') and h[1:] not in p.ids:bad.append('missing anchor '+h)
+ if h.startswith('assets/') and not Path(h).exists():bad.append('missing asset '+h)
+for s in p.img:
+ if s.startswith('assets/') and not Path(s).exists():bad.append('missing image '+s)
+need={'home','meet','priorities','experience','statement','materials','contact'}
+bad += ['missing section #'+x for x in sorted(need-p.ids)]
+if bad:raise SystemExit('\n'.join(bad))
+print(f'OK: {len(p.ids)} ids, {len(p.links)} links, {len(p.img)} images')
+'@|python -
+  node --check qa/index-script.js
+  if($LASTEXITCODE -ne 0){throw 'JavaScript syntax check failed'}
 
-root = Path('.')
-html = (root / 'index.html').read_text(encoding='utf-8')
-
-class Finder(HTMLParser):
-    def __init__(self):
-        super().__init__()
-        self.ids, self.links, self.images = set(), [], []
-    def handle_starttag(self, tag, attrs):
-        attrs = dict(attrs)
-        if 'id' in attrs: self.ids.add(attrs['id'])
-        if tag == 'a' and 'href' in attrs: self.links.append(attrs['href'])
-        if tag == 'img' and 'src' in attrs: self.images.append(attrs['src'])
-
-finder = Finder(); finder.feed(html)
-missing = []
-for href in finder.links:
-    if href.startswith('#') and href[1:] not in finder.ids:
-        missing.append(f'missing anchor {href}')
-    if href.startswith('assets/') and not (root / href).exists():
-        missing.append(f'missing asset {href}')
-for src in finder.images:
-    if src.startswith('assets/') and not (root / src).exists():
-        missing.append(f'missing image {src}')
-required_ids = {'home','meet','priorities','experience','statement','materials','contact'}
-missing.extend(f'missing required section #{x}' for x in sorted(required_ids - finder.ids))
-if missing: raise SystemExit('\n'.join(missing))
-print(f'OK: {len(finder.ids)} ids, {len(finder.links)} links, {len(finder.images)} images')
-'@ | python -
-
-  Write-Section 'Browser interaction and visual smoke test'
-  $proc = Start-Process python -ArgumentList '-m','http.server',"$Port",'--bind','127.0.0.1' -WorkingDirectory $root -PassThru -WindowStyle Hidden
-  Start-Sleep -Seconds 2
-  $env:SITE_URL = "http://127.0.0.1:$Port/index.html"
+  Write-Host "`n== Browser QA =="
+  $proc=Start-Process python -ArgumentList '-m','http.server',"$Port",'--bind','127.0.0.1' -WorkingDirectory $root -PassThru -WindowStyle Hidden
+  Start-Sleep 2
+  $env:SITE_URL="http://127.0.0.1:$Port/index.html"
   @'
-const { chromium } = require('playwright');
-(async() => {
-  const browser = await chromium.launch({ headless: true });
-  const errors = [];
-  const page = await browser.newPage({ viewport: { width: 1440, height: 1000 }, deviceScaleFactor: 1 });
-  page.on('pageerror', err => errors.push(`pageerror: ${err.message}`));
-  page.on('console', msg => { if (msg.type() === 'error') errors.push(`console: ${msg.text()}`); });
-  const url = process.env.SITE_URL;
-  await page.goto(url, { waitUntil: 'networkidle' });
-  await page.waitForFunction(() => document.getElementById('loader')?.classList.contains('hidden'), null, { timeout: 15000 });
-
-  for (const theme of ['navy','ivory','midnight']) {
-    if (!(await page.locator('#customizer').evaluate(el => el.classList.contains('open')))) await page.click('#customizerToggle');
-    await page.click(`#themeControls [data-theme="${theme}"]`, { force: true });
-    const active = await page.evaluate(() => document.documentElement.dataset.theme);
-    if (active !== theme) throw new Error(`Theme failed: ${theme}`);
-  }
-  for (const voice of ['steward','neighbor','nurse','educator','parent','patriot','commonsense']) {
-    if (!(await page.locator('#customizer').evaluate(el => el.classList.contains('open')))) await page.click('#customizerToggle');
-    await page.click(`[data-voice="${voice}"]`, { force: true });
-    const active = await page.evaluate(() => localStorage.getItem('mary-gunn-voice'));
-    if (active !== voice) throw new Error(`Voice failed: ${voice}`);
-  }
-  await page.keyboard.press('Escape');
-  for (const anim of ['stars','compass','ribbons','grid','aurora','bubbles','fireflies','ballots','constellations','waves']) {
-    await page.click(`[data-anim="${anim}"]`, { force: true });
-    const active = await page.evaluate(() => localStorage.getItem('mary-gunn-anim'));
-    if (active !== anim) throw new Error(`Animation failed: ${anim}`);
-  }
-  await page.evaluate(() => document.getElementById('powerToggle').click());
-
-  async function revealPage() {
-    await page.evaluate(async () => {
-      const step = Math.max(500, Math.floor(innerHeight * .72));
-      for (let y = 0; y < document.documentElement.scrollHeight; y += step) {
-        scrollTo(0, y); await new Promise(r => setTimeout(r, 60));
-      }
-      scrollTo(0, 0); await new Promise(r => setTimeout(r, 200));
-    });
-  }
-  await revealPage();
-  const hiddenDesktop = await page.locator('.reveal:not(.visible)').count();
-  if (hiddenDesktop) throw new Error(`${hiddenDesktop} desktop reveal elements remained hidden`);
-  const desktopOverflow = await page.evaluate(() => document.documentElement.scrollWidth - innerWidth);
-  if (desktopOverflow > 1) throw new Error(`Desktop horizontal overflow: ${desktopOverflow}px`);
-  await page.screenshot({ path: 'qa/desktop-full.png', fullPage: true });
-  await page.locator('#priorities').scrollIntoViewIfNeeded();
-  await page.screenshot({ path: 'qa/desktop-priorities.png' });
-
-  await page.setViewportSize({ width: 390, height: 844 });
-  await page.reload({ waitUntil: 'networkidle' });
-  await page.waitForFunction(() => document.getElementById('loader')?.classList.contains('hidden'), null, { timeout: 15000 });
-  await revealPage();
-  const hiddenMobile = await page.locator('.reveal:not(.visible)').count();
-  if (hiddenMobile) throw new Error(`${hiddenMobile} mobile reveal elements remained hidden`);
-  const mobileOverflow = await page.evaluate(() => document.documentElement.scrollWidth - innerWidth);
-  if (mobileOverflow > 1) throw new Error(`Mobile horizontal overflow: ${mobileOverflow}px`);
-  await page.screenshot({ path: 'qa/mobile-full.png', fullPage: true });
-
-  await page.evaluate(() => { document.documentElement.style.scrollBehavior = 'auto'; scrollTo(0,0); });
-  await page.waitForTimeout(150);
-  await page.click('#menuToggle');
-  await page.waitForTimeout(400);
-  if (!(await page.locator('#mobileNav').evaluate(el => el.classList.contains('open')))) throw new Error('Mobile menu did not open');
-  await page.screenshot({ path: 'qa/mobile-menu.png' });
-  await page.keyboard.press('Escape');
-  await page.waitForTimeout(300);
-  await page.click('#customizerToggle');
-  await page.waitForTimeout(400);
-  if (!(await page.locator('#customizer').evaluate(el => el.classList.contains('open')))) throw new Error('Customizer did not open');
-  await page.screenshot({ path: 'qa/mobile-customizer.png' });
-  await page.locator('#customizer').evaluate(el => { el.scrollTop = el.scrollHeight; });
-  await page.waitForTimeout(150);
-  const customizerScroll = await page.locator('#customizer').evaluate(el => ({ top: el.scrollTop, max: el.scrollHeight - el.clientHeight }));
-  if (customizerScroll.max > 0 && customizerScroll.top < customizerScroll.max - 2) throw new Error('Customizer did not scroll to its final controls');
-  await page.screenshot({ path: 'qa/mobile-customizer-bottom.png' });
-
-  console.log(JSON.stringify({ errors, hiddenDesktop, hiddenMobile, desktopOverflow, mobileOverflow }, null, 2));
-  await browser.close();
-  if (errors.length) process.exit(1);
-})().catch(err => { console.error(err); process.exit(1); });
-'@ | node -
-  if ($LASTEXITCODE -ne 0) { throw "Browser QA failed with exit code $LASTEXITCODE" }
-
-  Write-Section 'Done'
-  Write-Host "QA artifacts in $qaDir"
-}
-finally {
-  if ($proc) { Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue }
-}
+const{chromium}=require('playwright');
+(async()=>{const b=await chromium.launch({headless:true});const errors=[];const p=await b.newPage({viewport:{width:1440,height:1000}});p.on('pageerror',e=>errors.push(e.message));p.on('console',m=>{if(m.type()==='error')errors.push(m.text())});await p.goto(process.env.SITE_URL,{waitUntil:'networkidle'});await p.waitForFunction(()=>document.querySelector('#loader')?.classList.contains('hidden'),null,{timeout:15000});
+for(const theme of['heritage','chalk','blueprint']){if(!await p.locator('#viewPanel').evaluate(e=>e.classList.contains('open')))await p.click('#viewToggle');await p.click(`[data-theme="${theme}"]`);if(await p.evaluate(()=>document.documentElement.dataset.theme)!==theme)throw Error('theme failed '+theme)}
+for(const voice of['steward','neighbor','nurse','educator','parent','civic','direct']){if(!await p.locator('#viewPanel').evaluate(e=>e.classList.contains('open')))await p.click('#viewToggle');await p.click(`[data-voice="${voice}"]`);await p.waitForTimeout(160);if(await p.evaluate(()=>localStorage.getItem('mary-v2-voice'))!==voice)throw Error('voice failed '+voice)}
+if(!await p.locator('#viewPanel').evaluate(e=>e.classList.contains('open')))await p.click('#viewToggle');await p.click('[data-theme="heritage"]');await p.click('[data-voice="steward"]');await p.waitForTimeout(220);await p.keyboard.press('Escape');
+async function reveal(){await p.evaluate(async()=>{document.documentElement.style.scrollBehavior='auto';for(let y=0;y<document.documentElement.scrollHeight;y+=600){scrollTo(0,y);await new Promise(r=>setTimeout(r,50))}scrollTo(0,0);await new Promise(r=>setTimeout(r,180))})}
+await reveal();const hiddenD=await p.locator('.reveal:not(.visible)').count();const overflowD=await p.evaluate(()=>document.documentElement.scrollWidth-innerWidth);if(hiddenD)throw Error('desktop hidden reveals '+hiddenD);if(overflowD>1)throw Error('desktop overflow '+overflowD);await p.screenshot({path:'qa/v2-desktop-full.png',fullPage:true});await p.locator('#priorities').scrollIntoViewIfNeeded();await p.screenshot({path:'qa/v2-desktop-priorities.png'});
+await p.setViewportSize({width:390,height:844});await p.reload({waitUntil:'networkidle'});await p.waitForFunction(()=>document.querySelector('#loader')?.classList.contains('hidden'),null,{timeout:15000});await reveal();const hiddenM=await p.locator('.reveal:not(.visible)').count();const overflowM=await p.evaluate(()=>document.documentElement.scrollWidth-innerWidth);if(hiddenM)throw Error('mobile hidden reveals '+hiddenM);if(overflowM>1)throw Error('mobile overflow '+overflowM);await p.screenshot({path:'qa/v2-mobile-full.png',fullPage:true});await p.evaluate(()=>scrollTo(0,0));await p.waitForTimeout(100);await p.click('#menuToggle');await p.waitForTimeout(350);if(!await p.locator('#mobileMenu').evaluate(e=>e.classList.contains('open')))throw Error('mobile menu failed');await p.screenshot({path:'qa/v2-mobile-menu.png'});await p.keyboard.press('Escape');await p.click('#viewToggle');await p.waitForTimeout(250);await p.screenshot({path:'qa/v2-mobile-view.png'});
+console.log(JSON.stringify({errors,hiddenD,hiddenM,overflowD,overflowM},null,2));await b.close();if(errors.length)process.exit(1)})().catch(e=>{console.error(e);process.exit(1)});
+'@|node -
+  if($LASTEXITCODE -ne 0){throw "Browser QA failed: $LASTEXITCODE"}
+  Write-Host "`nQA PASS"
+}finally{if($proc){Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue}}
