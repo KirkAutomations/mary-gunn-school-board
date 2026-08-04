@@ -1,41 +1,33 @@
-# Mary Gunn for Troy School Board
+# Mary Gunn for Troy School Board — Editorial V2
 
-Single-page campaign site for Mary Gunn.
+Live site: https://kirkautomations.github.io/mary-gunn-school-board/
 
-## Contents
+## Direction
 
-- `index.html` - complete site with inline CSS, SVG, and JavaScript
-- `assets/` - original flyer images plus two cropped portrait visuals
-- `.github/workflows/deploy.yml` - GitHub Pages workflow
-- `qa.ps1` - local verification script
-- `qa/` - screenshots and extracted QA artifacts
+A bold editorial civic campaign site built around campaign-poster typography, warm paper textures, deep navy, campaign red, and restrained gold. V2 replaces the original glassmorphism/canvas concept.
 
-## Local preview
+The background animation engine and left-side background selector were removed completely.
 
-Run a simple web server from this folder:
+## Features
 
-```powershell
-python -m http.server 4173 --bind 127.0.0.1
-```
+- Responsive one-page campaign architecture
+- Editorial hero, campaign ticker, five-priority manifesto, experience timeline, candidate statement, downloadable flyers, and email CTA
+- Three persistent presentation palettes: Heritage, Chalkboard, Blueprint
+- Seven persistent message voices
+- Sticky navigation, mobile menu, loading screen, scroll progress, reveal animations, counters, cursor spotlight, magnetic buttons, and photo tilt
+- SEO, Open Graph, JSON-LD, accessibility, and print styles
 
-Then open:
+## Files
 
-```text
-http://127.0.0.1:4173/
-```
+- `index.html` — complete self-contained site
+- `assets/` — campaign logo, photographs, and official flyers
+- `qa.ps1` — static, interaction, responsive, and screenshot QA
+- `.github/workflows/deploy.yml` — GitHub Pages deployment
 
 ## QA
 
-Run the verification script from this folder:
-
 ```powershell
-.\qa.ps1
+powershell -ExecutionPolicy Bypass -File .\qa.ps1
 ```
 
-The script checks for unfinished text markers, extracts and syntax-checks the JavaScript, verifies local links and assets, and runs a Playwright smoke test if available.
-
-## Notes
-
-- Copy source is limited to the intake files.
-- No election date is published because it was not provided in the intake.
-- Contact action is email only and is labeled as such on the site.
+The suite validates JavaScript syntax, local assets and anchors, all palettes and copy voices, desktop/mobile reveals, horizontal overflow, mobile navigation, and the presentation panel.
