@@ -26,7 +26,64 @@ git clone --quiet --depth 1 "${REPO}" "${RELEASE_DIR}"
 ln -sfn "${RELEASE_DIR}" "${SITE_ROOT}/current.new"
 mv -Tf "${SITE_ROOT}/current.new" "${SITE_ROOT}/current"
 
-sudo tee "${NGINX_CONF}.new" >/dev/null <<'NGINX'
+if [[ -f "/etc/letsencrypt/live/${DOMAIN}/fullchain.pem" ]]; then
+sudo tee "${NGINX_CONF}.new" >/dev/null <<'NGINX_SSL'
+server {
+    listen 443 ssl;
+    listen [::]:443 ssl;
+    server_name marygunn.com www.marygunn.com;
+
+    root /var/www/marygunn.com/current;
+    index index.html;
+
+    access_log /var/log/nginx/marygunn.com.access.log;
+    error_log /var/log/nginx/marygunn.com.error.log;
+
+    location ^~ /.well-known/acme-challenge/ {
+        try_files $uri =404;
+    }
+
+    location = /index.html {
+        add_header Cache-Control "no-cache" always;
+    }
+
+    location ^~ /assets/ {
+        expires 30d;
+        add_header Cache-Control "public, immutable";
+        try_files $uri =404;
+    }
+
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+    add_header X-Frame-Options "SAMEORIGIN" always;
+
+    ssl_certificate /etc/letsencrypt/live/marygunn.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/marygunn.com/privkey.pem;
+    include /etc/letsencrypt/options-ssl-nginx.conf;
+    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
+}
+
+server {
+    listen 80;
+    listen [::]:80;
+    server_name marygunn.com www.marygunn.com;
+
+    location ^~ /.well-known/acme-challenge/ {
+        root /var/www/marygunn.com/current;
+        try_files $uri =404;
+    }
+
+    location / {
+        return 301 https://$host$request_uri;
+    }
+}
+NGINX_SSL
+else
+sudo tee "${NGINX_CONF}.new" >/dev/null <<'NGINX_HTTP'
 server {
     listen 80;
     listen [::]:80;
@@ -60,7 +117,8 @@ server {
     add_header Referrer-Policy "strict-origin-when-cross-origin" always;
     add_header X-Frame-Options "SAMEORIGIN" always;
 }
-NGINX
+NGINX_HTTP
+fi
 sudo mv "${NGINX_CONF}.new" "${NGINX_CONF}"
 if ! sudo nginx -t >/tmp/marygunn-nginx-test.log 2>&1; then
   cat /tmp/marygunn-nginx-test.log
@@ -69,9 +127,15 @@ fi
 cat /tmp/marygunn-nginx-test.log
 sudo systemctl reload nginx
 
-status="$(curl -sS -o /dev/null -w '%{http_code}' -H 'Host: marygunn.com' http://127.0.0.1/)"
+if [[ -f "/etc/letsencrypt/live/${DOMAIN}/fullchain.pem" ]]; then
+  protocol="HTTPS"
+  status="$(curl -sS --resolve marygunn.com:443:127.0.0.1 -o /dev/null -w '%{http_code}' https://marygunn.com/)"
+else
+  protocol="HTTP"
+  status="$(curl -sS -o /dev/null -w '%{http_code}' -H 'Host: marygunn.com' http://127.0.0.1/)"
+fi
 if [[ "${status}" != "200" ]]; then
-  echo "Local virtual-host check failed: HTTP ${status}" >&2
+  echo "Local virtual-host check failed: ${protocol} ${status}" >&2
   exit 1
 fi
 
@@ -80,4 +144,4 @@ find "${SITE_ROOT}/releases" -mindepth 1 -maxdepth 1 -type d -printf '%T@ %p\n' 
   | awk 'NR>3 {sub(/^[^ ]+ /, ""); print}' \
   | xargs -r rm -rf
 
-echo "DEPLOY_OK ${DOMAIN} ${RELEASE_ID} HTTP_${status}"
+echo "DEPLOY_OK ${DOMAIN} ${RELEASE_ID} ${protocol}_${status}"
