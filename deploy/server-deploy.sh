@@ -62,7 +62,11 @@ server {
 }
 NGINX
 sudo mv "${NGINX_CONF}.new" "${NGINX_CONF}"
-sudo nginx -t
+if ! sudo nginx -t >/tmp/marygunn-nginx-test.log 2>&1; then
+  cat /tmp/marygunn-nginx-test.log
+  exit 1
+fi
+cat /tmp/marygunn-nginx-test.log
 sudo systemctl reload nginx
 
 status="$(curl -sS -o /dev/null -w '%{http_code}' -H 'Host: marygunn.com' http://127.0.0.1/)"
