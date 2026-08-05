@@ -10,13 +10,16 @@
 <meta property="og:type" content="website">
 <meta property="og:title" content="Mary Gunn for Troy School Board">
 <meta property="og:description" content="Strong Schools. Bright Futures. Our Troy.">
-<meta property="og:image" content="assets/mary-family-right.png">
-<meta property="og:url" content="https://kirkautomations.github.io/mary-gunn-school-board/">
+<meta property="og:image" content="https://marygunn.com/assets/mary-family-right.png">
+<meta property="og:url" content="https://marygunn.com/">
+<meta property="og:site_name" content="Mary Gunn for Troy School Board">
 <meta name="twitter:card" content="summary_large_image">
+<link rel="canonical" href="https://marygunn.com/">
+<link rel="icon" href="assets/mary-gunn-logo.png" type="image/png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,600;9..144,700;9..144,800;9..144,900&display=swap" rel="stylesheet">
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"Person","name":"Mary Gunn","description":"Candidate for Troy School Board","email":"marygunn4troyschoolboard@gmail.com","url":"https://kirkautomations.github.io/mary-gunn-school-board/"}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"Person","name":"Mary Gunn","description":"Candidate for Troy School Board","email":"marygunn4troyschoolboard@gmail.com","url":"https://marygunn.com/"}</script>
 <style>
 :root{
   --ink:#102847;--ink-2:#18395f;--paper:#f5f0e6;--paper-2:#ebe2d2;--card:#fffdf8;
@@ -151,7 +154,7 @@ const actionDetails={
   updates:{subject:'Campaign updates',label:'receive Mary Gunn campaign updates'}
 };
 $('#actionForm').addEventListener('submit',e=>{e.preventDefault();const data=new FormData(e.currentTarget),choice=actionDetails[data.get('action')]||actionDetails['yard-sign'],name=String(data.get('name')||'').trim(),phone=String(data.get('phone')||'').trim(),note=String(data.get('note')||'').trim();const lines=[`Hello Mary,`,``,`My name is ${name}. I would like to ${choice.label}.`,phone?`My phone number is ${phone}.`:'',note?`A note from me: ${note}`:'',``,`Thank you.`].filter(Boolean);location.href=`mailto:marygunn4troyschoolboard@gmail.com?subject=${encodeURIComponent(choice.subject+' — '+name)}&body=${encodeURIComponent(lines.join('\n'))}`});
-$('#shareCampaign').addEventListener('click',async e=>{const button=e.currentTarget,url='https://kirkautomations.github.io/mary-gunn-school-board/',share={title:'Mary Gunn for Troy School Board',text:'Strong schools. Bright futures. Learn about Mary Gunn for Troy School Board.',url};try{if(navigator.share)await navigator.share(share);else{await navigator.clipboard.writeText(url);button.textContent='Campaign link copied';setTimeout(()=>button.textContent='Share this campaign',1700)}}catch(err){if(err.name!=='AbortError'){announcer.textContent='Campaign link ready to copy';window.prompt('Copy this campaign link:',url)}}});
+$('#shareCampaign').addEventListener('click',async e=>{const button=e.currentTarget,url='https://marygunn.com/',share={title:'Mary Gunn for Troy School Board',text:'Strong schools. Bright futures. Learn about Mary Gunn for Troy School Board.',url};try{if(navigator.share)await navigator.share(share);else{await navigator.clipboard.writeText(url);button.textContent='Campaign link copied';setTimeout(()=>button.textContent='Share this campaign',1700)}}catch(err){if(err.name!=='AbortError'){announcer.textContent='Campaign link ready to copy';window.prompt('Copy this campaign link:',url)}}});
 try{setTheme(localStorage.getItem(keys.theme)||'heritage');setVoice(localStorage.getItem(keys.voice)||'steward')}catch(e){setTheme('heritage');setVoice('steward')}
 window.addEventListener('load',()=>setTimeout(()=>loader.classList.add('hidden'),350));if(document.readyState==='complete')setTimeout(()=>loader.classList.add('hidden'),350);
 })();
