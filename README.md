@@ -1,6 +1,8 @@
-# Mary Gunn for Troy School Board — Editorial V2
+# Mary Gunn for Troy School Board — Conversion V3
 
-Live site: https://kirkautomations.github.io/mary-gunn-school-board/
+Production: https://marygunn.com/
+
+GitHub Pages mirror: https://kirkautomations.github.io/mary-gunn-school-board/
 
 ## Direction
 
@@ -24,7 +26,9 @@ The background animation engine and left-side background selector were removed c
 - `index.html` — complete self-contained site
 - `assets/` — campaign logo, photographs, and archived source flyers
 - `qa.ps1` — static, interaction, responsive, and screenshot QA
-- `.github/workflows/deploy.yml` — GitHub Pages deployment
+- `robots.txt` and `sitemap.xml` — production discovery metadata
+- `deploy/server-deploy.sh` — atomic nginx release deployment with HTTP/HTTPS preservation
+- `.github/workflows/deploy.yml` — GitHub Pages mirror deployment
 
 ## QA
 
@@ -32,4 +36,8 @@ The background animation engine and left-side background selector were removed c
 powershell -ExecutionPolicy Bypass -File .\qa.ps1
 ```
 
-The suite validates JavaScript syntax, local assets and anchors, all palettes and copy voices, desktop/mobile reveals, horizontal overflow, mobile navigation, and the presentation panel.
+The suite validates JavaScript syntax, local assets and anchors, all palettes and copy voices, desktop/mobile reveals, horizontal overflow, mobile navigation, action-form behavior, and the presentation panel.
+
+## Production
+
+`marygunn.com` and `www.marygunn.com` run on nginx with Let's Encrypt HTTPS. The deploy script creates immutable release directories, switches a `current` symlink atomically, validates nginx, verifies the local virtual host, and retains the newest three releases.
