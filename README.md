@@ -16,7 +16,7 @@ The background animation engine and left-side background selector were removed c
 - Editorial hero, campaign ticker, five-priority manifesto, experience timeline, candidate statement, and conversion-first action desk
 - Three persistent presentation palettes: Heritage, Chalkboard, Blueprint
 - Seven persistent message voices
-- Interactive action engine for yard signs, volunteering, hosting Mary, and campaign updates; generates a prefilled campaign email without storing visitor data
+- Interactive action engine for yard signs, volunteering, hosting Mary, campaign updates, and contribution requests; generates a prefilled campaign email without storing visitor data
 - Share-campaign control, stronger hero/header CTAs, red closing CTA, and context-aware mobile action bar
 - Sticky navigation, mobile menu, loading screen, scroll progress, reveal animations, counters, cursor spotlight, magnetic buttons, and photo tilt
 - SEO, Open Graph, JSON-LD, accessibility, and print styles
@@ -37,6 +37,12 @@ powershell -ExecutionPolicy Bypass -File .\qa.ps1
 ```
 
 The suite validates JavaScript syntax, local assets and anchors, all palettes and copy voices, desktop/mobile reveals, horizontal overflow, mobile navigation, action-form behavior, and the presentation panel.
+
+## Mark Gunn update — 2026-08-07
+
+- Replaced the group photo featuring Mark in the blue shirt with Mark's supplied portrait of Mary alone
+- Added a fifth action path for campaign contributions
+- Contribution requests open a prefilled email asking the campaign for secure contribution details; no payment information is collected or stored by the site
 
 ## Production
 
