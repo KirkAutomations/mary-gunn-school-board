@@ -42,7 +42,8 @@ The suite validates JavaScript syntax, local assets and anchors, all palettes an
 
 - Replaced the group photo featuring Mark in the blue shirt with Mark's supplied portrait of Mary alone
 - Added a fifth action path for campaign contributions
-- Contribution requests open a prefilled email asking the campaign for secure contribution details; no payment information is collected or stored by the site
+- Every action—including contribution and campaign-update requests—opens a prefilled email addressed directly to Mark Gunn at `markgunn4troy@gmail.com`
+- No payment information is collected or stored by the site
 
 ## Production
 

@@ -14,6 +14,8 @@ from pathlib import Path
 from html.parser import HTMLParser
 import re
 html=Path('index.html').read_text(encoding='utf-8')
+if 'mailto:markgunn4troy@gmail.com' not in html: raise SystemExit('action form is not routed to Mark Gunn')
+if 'Hello Mark,' not in html: raise SystemExit('action email greeting is not addressed to Mark')
 m=re.search(r'<script>\s*(.*?)\s*</script>\s*</body>',html,re.S)
 if not m: raise SystemExit('main script missing')
 Path('qa/index-script.js').write_text(m.group(1),encoding='utf-8')
