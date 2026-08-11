@@ -13,7 +13,7 @@ The background animation engine and left-side background selector were removed c
 ## Features
 
 - Responsive one-page campaign architecture
-- Editorial hero, campaign ticker, five-priority manifesto, experience timeline, candidate statement, and conversion-first action desk
+- Editorial hero, campaign ticker, embedded candidate video, five-priority manifesto, experience timeline, candidate statement, and conversion-first action desk
 - Three persistent presentation palettes: Heritage, Chalkboard, Blueprint
 - Seven persistent message voices
 - Interactive action engine for yard signs, volunteering, hosting Mary, campaign updates, and contribution requests; generates a prefilled campaign email without storing visitor data
@@ -24,7 +24,7 @@ The background animation engine and left-side background selector were removed c
 ## Files
 
 - `index.html` — complete self-contained site
-- `assets/` — campaign logo, photographs, and archived source flyers
+- `assets/` — campaign logo, photographs, optimized campaign video/poster, and archived source flyers
 - `qa.ps1` — static, interaction, responsive, and screenshot QA
 - `robots.txt` and `sitemap.xml` — production discovery metadata
 - `deploy/server-deploy.sh` — atomic nginx release deployment with HTTP/HTTPS preservation
@@ -36,7 +36,7 @@ The background animation engine and left-side background selector were removed c
 powershell -ExecutionPolicy Bypass -File .\qa.ps1
 ```
 
-The suite validates JavaScript syntax, local assets and anchors, all palettes and copy voices, desktop/mobile reveals, horizontal overflow, mobile navigation, action-form behavior, and the presentation panel.
+The suite validates JavaScript syntax, local assets and anchors, campaign-video availability, all palettes and copy voices, desktop/mobile reveals, horizontal overflow, mobile navigation, action-form behavior, and the presentation panel.
 
 ## Mark Gunn update — 2026-08-07
 
@@ -44,6 +44,13 @@ The suite validates JavaScript syntax, local assets and anchors, all palettes an
 - Added a fifth action path for campaign contributions
 - Every action—including contribution and campaign-update requests—opens a prefilled email addressed directly to Mark Gunn at `markgunn4troy@gmail.com` and BCCs Michael at `michael.kirk@kirkautomations.com`
 - No payment information is collected or stored by the site
+
+## Mark Gunn update — 2026-08-11
+
+- Added Mark's supplied 33-second candidate video as an optimized, responsive HTML5 video with controls and a custom poster frame
+- Added Watch Mary navigation links and a dedicated In Her Own Words section
+- Shifted the family-photo crop so Mary sits closer to the center on desktop and mobile
+- Kept video loading lightweight with metadata-only preload
 
 ## Production
 

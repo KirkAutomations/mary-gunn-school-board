@@ -21,22 +21,26 @@ m=re.search(r'<script>\s*(.*?)\s*</script>\s*</body>',html,re.S)
 if not m: raise SystemExit('main script missing')
 Path('qa/index-script.js').write_text(m.group(1),encoding='utf-8')
 class P(HTMLParser):
- def __init__(self): super().__init__(); self.ids=set(); self.links=[]; self.img=[]
+ def __init__(self): super().__init__(); self.ids=set(); self.links=[]; self.assets=[]
  def handle_starttag(self,t,a):
   a=dict(a)
   if 'id' in a:self.ids.add(a['id'])
   if t=='a' and 'href' in a:self.links.append(a['href'])
-  if t=='img' and 'src' in a:self.img.append(a['src'])
+  for key in ('src','poster'):
+   if key in a and a[key].startswith('assets/'):self.assets.append(a[key])
 p=P();p.feed(html);bad=[]
 for h in p.links:
  if h.startswith('#') and h[1:] not in p.ids:bad.append('missing anchor '+h)
  if h.startswith('assets/') and not Path(h).exists():bad.append('missing asset '+h)
-for s in p.img:
- if s.startswith('assets/') and not Path(s).exists():bad.append('missing image '+s)
-need={'home','meet','priorities','experience','statement','act','contact'}
+for s in p.assets:
+ if not Path(s).exists():bad.append('missing asset '+s)
+need={'home','meet','watch','priorities','experience','statement','act','contact'}
 bad += ['missing section #'+x for x in sorted(need-p.ids)]
 if bad:raise SystemExit('\n'.join(bad))
-print(f'OK: {len(p.ids)} ids, {len(p.links)} links, {len(p.img)} images')
+if 'assets/mary-gunn-message.mp4' not in p.assets:bad.append('campaign video source missing')
+if 'assets/mary-gunn-message-poster.webp' not in p.assets:bad.append('campaign video poster missing')
+if bad:raise SystemExit('\n'.join(bad))
+print(f'OK: {len(p.ids)} ids, {len(p.links)} links, {len(p.assets)} local assets')
 '@|python -
   node --check qa/index-script.js
   if($LASTEXITCODE -ne 0){throw 'JavaScript syntax check failed'}
@@ -51,6 +55,7 @@ const{chromium}=require('playwright');
 for(const theme of['heritage','chalk','blueprint']){if(!await p.locator('#viewPanel').evaluate(e=>e.classList.contains('open')))await p.click('#viewToggle');await p.click(`[data-theme="${theme}"]`);if(await p.evaluate(()=>document.documentElement.dataset.theme)!==theme)throw Error('theme failed '+theme)}
 for(const voice of['steward','neighbor','nurse','educator','parent','civic','direct']){if(!await p.locator('#viewPanel').evaluate(e=>e.classList.contains('open')))await p.click('#viewToggle');await p.click(`[data-voice="${voice}"]`);await p.waitForTimeout(160);if(await p.evaluate(()=>localStorage.getItem('mary-v2-voice'))!==voice)throw Error('voice failed '+voice)}
 if(!await p.locator('#viewPanel').evaluate(e=>e.classList.contains('open')))await p.click('#viewToggle');await p.click('[data-theme="heritage"]');await p.click('[data-voice="steward"]');await p.waitForTimeout(220);await p.keyboard.press('Escape');
+const video=await p.locator('#watch video');if(await video.count()!==1)throw Error('campaign video missing');if(!await video.evaluate(v=>v.hasAttribute('controls')))throw Error('campaign video controls missing');if(!await video.getAttribute('poster'))throw Error('campaign video poster missing');const source=await video.locator('source').getAttribute('src');if(source!=='assets/mary-gunn-message.mp4')throw Error('wrong campaign video source');const videoStatus=await p.evaluate(async()=>{const r=await fetch('assets/mary-gunn-message.mp4',{headers:{Range:'bytes=0-1023'}});return r.status});if(![200,206].includes(videoStatus))throw Error('campaign video unavailable '+videoStatus);
 if(await p.locator('.action-option').count()!==5)throw Error('action choices missing');await p.locator('.action-option').nth(1).click();if(!await p.locator('input[value="volunteer"]').isChecked())throw Error('action choice failed');await p.locator('input[value="contribute"]+span').click();if(!await p.locator('input[value="contribute"]').isChecked())throw Error('contribution choice failed');await p.fill('#actionName','QA Test');if(!await p.locator('#actionForm').evaluate(f=>f.checkValidity()))throw Error('action form invalid after required fields');await p.locator('#actionForm').evaluate(f=>f.dispatchEvent(new Event('submit',{bubbles:true,cancelable:true})));const emailHref=await p.locator('#actionForm').getAttribute('data-email-href'),emailUrl=new URL(emailHref);if(emailUrl.pathname!=='markgunn4troy@gmail.com')throw Error('wrong action recipient '+emailUrl.pathname);if(emailUrl.searchParams.get('bcc')!=='michael.kirk@kirkautomations.com')throw Error('wrong action BCC');if(!emailUrl.searchParams.get('subject').startsWith('Campaign contribution')||!emailUrl.searchParams.get('subject').endsWith('QA Test'))throw Error('wrong action subject');if(!emailUrl.searchParams.get('body').includes('Hello Mark,'))throw Error('wrong action body');await p.locator('.action-option').first().click();await p.fill('#actionName','');await p.waitForTimeout(300);
 async function reveal(){await p.evaluate(async()=>{document.documentElement.style.scrollBehavior='auto';for(let y=0;y<document.documentElement.scrollHeight;y+=600){scrollTo(0,y);await new Promise(r=>setTimeout(r,50))}scrollTo(0,0);await new Promise(r=>setTimeout(r,180))})}
 await reveal();const hiddenD=await p.locator('.reveal:not(.visible)').count();const overflowD=await p.evaluate(()=>document.documentElement.scrollWidth-innerWidth);if(hiddenD)throw Error('desktop hidden reveals '+hiddenD);if(overflowD>1)throw Error('desktop overflow '+overflowD);await p.screenshot({path:'qa/v3-desktop-full.png',fullPage:true});await p.locator('#priorities').scrollIntoViewIfNeeded();await p.screenshot({path:'qa/v3-desktop-priorities.png'});await p.locator('#act').scrollIntoViewIfNeeded();await p.screenshot({path:'qa/v3-desktop-action.png'});
