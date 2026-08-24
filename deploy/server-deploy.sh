@@ -34,7 +34,19 @@ sudo install -o root -g root -m 0644 "${RELEASE_DIR}/deploy/marygunn-contact.ser
 sudo systemctl daemon-reload
 sudo systemctl enable --now marygunn-contact.service
 sudo systemctl restart marygunn-contact.service
-curl -fsS --retry 10 --retry-connrefused --retry-delay 1 http://127.0.0.1:8787/health >/dev/null
+contact_ready=0
+for _ in $(seq 1 20); do
+  if curl -fsS http://127.0.0.1:8787/health >/dev/null 2>&1; then
+    contact_ready=1
+    break
+  fi
+  sleep 0.5
+done
+if [[ "${contact_ready}" != "1" ]]; then
+  sudo systemctl status marygunn-contact.service --no-pager -l || true
+  echo "Contact API failed its readiness check" >&2
+  exit 1
+fi
 rm -rf "${RELEASE_DIR}/deploy"
 
 ln -sfn "${RELEASE_DIR}" "${SITE_ROOT}/current.new"
