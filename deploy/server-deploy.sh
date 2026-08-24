@@ -19,9 +19,23 @@ git clone --quiet --depth 1 "${REPO}" "${RELEASE_DIR}"
   git fetch --quiet --depth 1 origin "${REVISION}"
   git checkout --quiet --detach FETCH_HEAD
   git rev-parse HEAD > .deployed-commit
-  rm -rf .git .github qa deploy
+  rm -rf .git .github qa
   rm -f qa.ps1 README.md
 )
+
+if [[ ! -f /etc/marygunn-contact.env ]]; then
+  echo "Missing /etc/marygunn-contact.env" >&2
+  exit 1
+fi
+id marycontact >/dev/null 2>&1 || sudo useradd --system --home-dir /nonexistent --shell /usr/sbin/nologin marycontact
+sudo install -d -o root -g root -m 0755 /opt/marygunn-contact
+sudo install -o root -g root -m 0755 "${RELEASE_DIR}/deploy/contact-api.py" /opt/marygunn-contact/contact-api.py
+sudo install -o root -g root -m 0644 "${RELEASE_DIR}/deploy/marygunn-contact.service" /etc/systemd/system/marygunn-contact.service
+sudo systemctl daemon-reload
+sudo systemctl enable --now marygunn-contact.service
+sudo systemctl restart marygunn-contact.service
+curl -fsS http://127.0.0.1:8787/health >/dev/null
+rm -rf "${RELEASE_DIR}/deploy"
 
 ln -sfn "${RELEASE_DIR}" "${SITE_ROOT}/current.new"
 mv -Tf "${SITE_ROOT}/current.new" "${SITE_ROOT}/current"
@@ -45,6 +59,16 @@ server {
 
     location = /index.html {
         add_header Cache-Control "no-cache" always;
+    }
+
+    location = /api/contact {
+        limit_except POST { deny all; }
+        client_max_body_size 20k;
+        proxy_pass http://127.0.0.1:8787/contact;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 30s;
     }
 
     location ^~ /assets/ {
