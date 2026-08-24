@@ -62,9 +62,18 @@ def send_message(sender, message, context):
         f"Topic: {subject_context}\n\n"
         f"{message}\n"
     )
-    with smtplib.SMTP_SSL(SMTP_HOST, SMTP_PORT, context=ssl.create_default_context(), timeout=20) as smtp:
-        smtp.login(SMTP_USER, SMTP_PASSWORD)
-        smtp.send_message(mail)
+    tls = ssl.create_default_context()
+    if SMTP_PORT == 465:
+        with smtplib.SMTP_SSL(SMTP_HOST, SMTP_PORT, context=tls, timeout=15) as smtp:
+            smtp.login(SMTP_USER, SMTP_PASSWORD)
+            smtp.send_message(mail)
+    else:
+        with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=15) as smtp:
+            smtp.ehlo()
+            smtp.starttls(context=tls)
+            smtp.ehlo()
+            smtp.login(SMTP_USER, SMTP_PASSWORD)
+            smtp.send_message(mail)
 
 
 class Handler(BaseHTTPRequestHandler):
