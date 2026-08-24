@@ -34,7 +34,7 @@ sudo install -o root -g root -m 0644 "${RELEASE_DIR}/deploy/marygunn-contact.ser
 sudo systemctl daemon-reload
 sudo systemctl enable --now marygunn-contact.service
 sudo systemctl restart marygunn-contact.service
-curl -fsS http://127.0.0.1:8787/health >/dev/null
+curl -fsS --retry 10 --retry-connrefused --retry-delay 1 http://127.0.0.1:8787/health >/dev/null
 rm -rf "${RELEASE_DIR}/deploy"
 
 ln -sfn "${RELEASE_DIR}" "${SITE_ROOT}/current.new"
