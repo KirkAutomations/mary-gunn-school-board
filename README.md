@@ -1,4 +1,4 @@
-# Mary Gunn for Troy School Board — Conversion V3
+# Mary Gunn for Troy School Board
 
 Production: https://marygunn.com/
 
@@ -13,10 +13,12 @@ The background animation engine and left-side background selector were removed c
 ## Features
 
 - Responsive one-page campaign architecture
-- Editorial hero, campaign ticker, embedded candidate video, five-priority manifesto, experience timeline, candidate statement, and conversion-first action desk
+- Editorial hero, campaign ticker, embedded candidate media, a six-part **Issues / Where We Stand** section, experience timeline, candidate statement, and conversion-first action desk
+- Six sourced issue positions: Responsible Budgeting, Early Literacy, Special Education, Technology & AI, Instructional Materials, and Dignity, Opportunity & Belonging
+- Accessible, expandable issue briefs with desktop and mobile navigation access
 - Three persistent presentation palettes: Heritage, Chalkboard, Blueprint
 - Seven persistent message voices
-- Interactive action engine for yard signs, volunteering, hosting Mary, campaign updates, and contribution requests; generates a prefilled campaign email without storing visitor data
+- Interactive action engine for yard signs, volunteering, hosting Mary, and campaign updates; opens the site's secure two-field contact form with a prefilled message
 - Share-campaign control, stronger hero/header CTAs, red closing CTA, and context-aware mobile action bar
 - Sticky navigation, mobile menu, loading screen, scroll progress, reveal animations, counters, cursor spotlight, magnetic buttons, and photo tilt
 - SEO, Open Graph, JSON-LD, accessibility, and print styles
@@ -25,7 +27,8 @@ The background animation engine and left-side background selector were removed c
 
 - `index.html` — complete self-contained site
 - `assets/` — campaign logo, photographs, optimized campaign video/poster, and archived source flyers
-- `qa.ps1` — static, interaction, responsive, and screenshot QA
+- `qa.ps1` — static, interaction, responsive, overflow, console-error, and screenshot QA
+- `QA/artifacts/` — stable 1440px desktop and 390px mobile full-page QA captures
 - `robots.txt` and `sitemap.xml` — production discovery metadata
 - `deploy/server-deploy.sh` — atomic nginx release deployment with HTTP/HTTPS preservation
 - `.github/workflows/deploy.yml` — GitHub Pages mirror deployment
@@ -36,7 +39,7 @@ The background animation engine and left-side background selector were removed c
 powershell -ExecutionPolicy Bypass -File .\qa.ps1
 ```
 
-The suite validates JavaScript syntax, local assets and anchors, campaign-video availability, all palettes and copy voices, desktop/mobile reveals, horizontal overflow, mobile navigation, action-form behavior, and the presentation panel.
+The suite validates JavaScript syntax, local assets and anchors, all six issue titles and expandable interactions, desktop/mobile Issues navigation, campaign-video availability, every palette and copy voice, desktop/mobile reveals, horizontal overflow, console errors, mobile navigation, action-form behavior, the secure contact popup, and the presentation panel.
 
 ## Mark Gunn update — 2026-08-07
 
